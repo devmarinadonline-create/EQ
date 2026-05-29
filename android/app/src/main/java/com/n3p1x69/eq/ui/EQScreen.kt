@@ -6,11 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +22,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.n3p1x69.eq.*
@@ -206,6 +203,7 @@ fun EQCurve(bands: List<Band>, modifier: Modifier = Modifier) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PresetGrid(
     presets: List<Preset>,
@@ -213,37 +211,27 @@ fun PresetGrid(
     onSelect: (Preset) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier
-    ) {
-        items(presets, key = { it.name }) { preset ->
-            val selected = preset.name == selectedName
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (selected) GreenSelected else CardBg)
-                    .clickable { onSelect(preset) }
-                    .padding(10.dp)
-            ) {
-                Column {
+    Column(modifier = modifier.verticalScroll(rememberScrollState())) {
+        FlowRow(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            presets.forEach { preset ->
+                val selected = preset.name == selectedName
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(if (selected) GreenSelected else Color(0xFF262626))
+                        .clickable { onSelect(preset) }
+                        .padding(horizontal = 10.dp, vertical = 7.dp)
+                ) {
                     Text(
                         preset.name,
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (selected) Color.Black else Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.height(32.dp)
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    MiniEQBar(
-                        gains = PresetStore.previewGains(preset, 10),
-                        inverted = selected,
-                        modifier = Modifier.fillMaxWidth().height(22.dp)
+                        maxLines = 1
                     )
                 }
             }
