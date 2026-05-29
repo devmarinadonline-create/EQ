@@ -191,7 +191,7 @@ fun EQCurve(bands: List<Band>, modifier: Modifier = Modifier) {
         val pts = (0..steps).map { i ->
             val t = i.toFloat() / steps
             val logF = minLog + t * (maxLog - minLog)
-            val freq = 10f.pow(logF)
+            val freq = 10.0.pow(logF.toDouble()).toFloat()
             val gain = responseAt(freq, bands)
             Offset(t * size.width, gainToY(gain))
         }
