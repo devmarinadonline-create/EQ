@@ -74,11 +74,11 @@ class EQEngine {
         for (i in 0 until count) setBand(i, gains.getOrElse(i) { 0f })
     }
 
-    // loudnessDb: 0..20 dB
-    fun setLoudness(db: Float) {
-        val clamped = db.coerceIn(0f, 20f)
+    // loudnessPercent: 0..200 → maps to 0..2000 mB (0..20 dB)
+    fun setLoudness(percent: Float) {
+        val clamped = percent.coerceIn(0f, 200f)
         try {
-            loudness?.setTargetGain((clamped * 100).toInt())
+            loudness?.setTargetGain((clamped * 10).toInt())
         } catch (_: Exception) {}
         _loudnessDb.value = clamped
     }

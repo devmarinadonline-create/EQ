@@ -96,13 +96,7 @@ fun EQScreen(vm: EQViewModel) {
             )
         }
 
-        Spacer(Modifier.height(10.dp))
-
-        // Volume boost
-        val loudness by vm.engine.loudnessDb.collectAsState()
-        LoudnessRow(loudnessDb = loudness, onChange = vm::setLoudness)
-
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(12.dp))
 
         // Tab switcher
         Row(
@@ -142,9 +136,12 @@ fun EQScreen(vm: EQViewModel) {
                 modifier = Modifier.weight(1f)
             )
         } else {
+            val loudness by vm.engine.loudnessDb.collectAsState()
             BandSliders(
                 bands = bands,
                 onBandChange = vm::setBand,
+                loudnessPercent = loudness * 10f,
+                onLoudnessChange = { percent -> vm.setLoudness(percent / 10f) },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -322,16 +319,54 @@ fun MiniEQBar(gains: List<Float>, inverted: Boolean, modifier: Modifier = Modifi
 }
 
 @Composable
-fun BandSliders(bands: List<Band>, onBandChange: (Int, Float) -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        bands.forEach { band ->
-            BandSlider(band = band, onChange = { onBandChange(band.index, it) })
+fun BandSliders(
+    bands: List<Band>,
+    onBandChange: (Int, Float) -> Unit,
+    loudnessPercent: Float,
+    onLoudnessChange: (Float) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        // Volume boost slider (0–200%)
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Буст громкости", fontSize = 12.sp, color = Color.Gray)
+                Text(
+                    "${loudnessPercent.toInt()}%",
+                    fontSize = 12.sp,
+                    color = if (loudnessPercent > 0f) Green else Color.Gray,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Slider(
+                value = loudnessPercent,
+                onValueChange = onLoudnessChange,
+                valueRange = 0f..200f,
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    thumbColor = Green,
+                    activeTrackColor = Green,
+                    inactiveTrackColor = Color(0xFF2E2E2E)
+                )
+            )
+        }
+
+        // EQ band sliders
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            bands.forEach { band ->
+                BandSlider(band = band, onChange = { onBandChange(band.index, it) })
+            }
         }
     }
 }
