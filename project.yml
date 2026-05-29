@@ -22,11 +22,7 @@ targets:
     sources:
       - path: Sources
         excludes:
-          - "EarsAudioToolkitPresets.json"
           - "Info.plist"
-
-    resources:
-      - Sources/EarsAudioToolkitPresets.json
 
     info:
       path: Sources/Info.plist
