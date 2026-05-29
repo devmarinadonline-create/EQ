@@ -140,44 +140,15 @@ fun EQScreen(vm: EQViewModel) {
             BandSliders(
                 bands = bands,
                 onBandChange = vm::setBand,
-                loudnessPercent = loudness * 10f,
-                onLoudnessChange = { percent -> vm.setLoudness(percent / 10f) },
+                loudnessPercent = loudness,
+                onLoudnessChange = vm::setLoudness,
                 modifier = Modifier.weight(1f)
             )
         }
     }
 }
 
-@Composable
-fun LoudnessRow(loudnessDb: Float, onChange: (Float) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Text("Громкость", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.width(72.dp))
-        Slider(
-            value = loudnessDb,
-            onValueChange = onChange,
-            valueRange = 0f..20f,
-            modifier = Modifier.weight(1f),
-            colors = SliderDefaults.colors(
-                thumbColor = Green,
-                activeTrackColor = Green,
-                inactiveTrackColor = Color(0xFF2E2E2E)
-            )
-        )
-        Text(
-            text = "+${loudnessDb.toInt()} dB",
-            fontSize = 12.sp,
-            color = if (loudnessDb > 0f) Green else Color.Gray,
-            modifier = Modifier.width(48.dp),
-            textAlign = TextAlign.End
-        )
-    }
-}
+
 
 // Gaussian frequency response simulation (same as iOS app)
 private fun responseAt(freqHz: Float, bands: List<Band>): Float {
