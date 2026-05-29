@@ -7,6 +7,7 @@ class EQApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        PresetStore.load(this)
         engine.init()
     }
 

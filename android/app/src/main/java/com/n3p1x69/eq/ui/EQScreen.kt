@@ -133,7 +133,6 @@ fun EQScreen(vm: EQViewModel) {
                 presets = PresetStore.presets,
                 selectedName = vm.selectedPreset,
                 onSelect = vm::applyPreset,
-                bandCount = bands.size.coerceAtLeast(5),
                 modifier = Modifier.weight(1f)
             )
         } else {
@@ -212,7 +211,6 @@ fun PresetGrid(
     presets: List<Preset>,
     selectedName: String?,
     onSelect: (Preset) -> Unit,
-    bandCount: Int,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -243,7 +241,7 @@ fun PresetGrid(
                     )
                     Spacer(Modifier.height(4.dp))
                     MiniEQBar(
-                        gains = PresetStore.interpolate(preset, bandCount),
+                        gains = PresetStore.previewGains(preset, 10),
                         inverted = selected,
                         modifier = Modifier.fillMaxWidth().height(22.dp)
                     )

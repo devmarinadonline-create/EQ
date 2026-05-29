@@ -12,7 +12,7 @@ class EQViewModel(val engine: EQEngine) : ViewModel() {
         private set
 
     fun applyPreset(preset: Preset) {
-        val gains = PresetStore.interpolate(preset, engine.bands.value.size)
+        val gains = PresetStore.mapToDeviceBands(preset, engine.bands.value)
         engine.applyGains(gains)
         selectedPreset = preset.name
     }

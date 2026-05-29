@@ -1,38 +1,71 @@
 package com.n3p1x69.eq
 
-data class Preset(val name: String, val gains: List<Float>)
+import android.content.Context
+import org.json.JSONObject
+import kotlin.math.log10
+
+data class Preset(
+    val name: String,
+    val frequencies: List<Float>,
+    val gains: List<Float>
+)
 
 object PresetStore {
-    // 10 values covering sub-bass → treble, scales to any band count
-    val presets = listOf(
-        Preset("Flat",          listOf( 0f,  0f,  0f,  0f,  0f,  0f,  0f,  0f,  0f,  0f)),
-        Preset("Bass Boost",    listOf( 7f,  6f,  4f,  2f,  0f,  0f,  0f,  0f,  0f,  0f)),
-        Preset("Bass Reducer",  listOf(-6f, -5f, -3f, -1f,  0f,  0f,  0f,  0f,  0f,  0f)),
-        Preset("Treble Boost",  listOf( 0f,  0f,  0f,  0f,  0f,  1f,  2f,  4f,  6f,  7f)),
-        Preset("Rock",          listOf( 5f,  4f,  2f,  0f, -1f,  0f,  1f,  3f,  5f,  5f)),
-        Preset("Pop",           listOf(-1f,  0f,  2f,  4f,  5f,  4f,  2f,  0f, -1f, -1f)),
-        Preset("Classical",     listOf( 0f,  0f,  0f,  0f, -2f, -2f,  0f,  0f,  3f,  4f)),
-        Preset("Jazz",          listOf( 4f,  3f,  1f,  0f, -2f, -2f,  0f,  1f,  3f,  4f)),
-        Preset("Hip-Hop",       listOf( 8f,  6f,  4f,  1f, -1f, -1f,  0f,  2f,  3f,  4f)),
-        Preset("Electronic",    listOf( 7f,  5f,  2f,  0f, -2f,  0f,  0f,  2f,  5f,  6f)),
-        Preset("R&B",           listOf( 7f,  5f,  3f,  1f, -1f, -1f,  1f,  2f,  4f,  5f)),
-        Preset("Metal",         listOf( 6f,  4f,  2f, -2f, -3f,  0f,  2f,  4f,  5f,  5f)),
-        Preset("Acoustic",      listOf( 2f,  2f,  4f,  2f,  1f,  0f,  0f,  1f,  3f,  3f)),
-        Preset("Vocal",         listOf(-3f, -3f, -2f,  1f,  4f,  6f,  5f,  3f,  1f,  0f)),
-        Preset("Deep Bass",     listOf(10f,  9f,  6f,  3f,  0f,  0f,  0f,  0f,  0f,  0f)),
-        Preset("Lounge",        listOf( 2f,  1f,  0f,  0f, -1f,  0f,  1f,  2f,  2f,  2f)),
-    )
+    private var _presets = listOf<Preset>()
+    val presets get() = _presets
 
-    fun interpolate(preset: Preset, targetBands: Int): List<Float> {
-        val src = preset.gains
-        if (src.size == targetBands) return src
-        if (targetBands == 1) return listOf(src[src.size / 2])
-        return List(targetBands) { i ->
-            val t = i.toFloat() / (targetBands - 1)
-            val srcPos = t * (src.size - 1)
-            val lo = srcPos.toInt().coerceIn(0, src.size - 1)
-            val hi = (lo + 1).coerceIn(0, src.size - 1)
-            src[lo] + (src[hi] - src[lo]) * (srcPos - lo)
+    fun load(context: Context) {
+        try {
+            val json = context.assets.open("presets.json").bufferedReader().readText()
+            val obj = JSONObject(json)
+            _presets = obj.keys().asSequence().map { key ->
+                val p = obj.getJSONObject(key)
+                val freqs = p.getJSONArray("frequencies")
+                val gains = p.getJSONArray("gains")
+                Preset(
+                    name = key,
+                    frequencies = List(freqs.length()) { freqs.getDouble(it).toFloat() },
+                    gains = List(gains.length()) { gains.getDouble(it).toFloat() }
+                )
+            }.sortedBy { it.name.lowercase() }.toList()
+        } catch (_: Exception) {
+            _presets = emptyList()
         }
+    }
+
+    // Map preset gains to device EQ bands using log-frequency interpolation
+    fun mapToDeviceBands(preset: Preset, deviceBands: List<Band>): List<Float> {
+        val sorted = preset.frequencies.zip(preset.gains)
+            .filter { it.first > 1f }
+            .sortedBy { it.first }
+        if (sorted.isEmpty()) return deviceBands.map { 0f }
+        return deviceBands.map { band -> interpolateLog(band.centerFreqHz, sorted) }
+    }
+
+    // Fixed 10-point preview for mini EQ bar (sorted by freq, resampled)
+    fun previewGains(preset: Preset, count: Int = 10): List<Float> {
+        val sorted = preset.frequencies.zip(preset.gains)
+            .filter { it.first > 1f }
+            .sortedBy { it.first }
+            .map { it.second }
+        if (sorted.isEmpty()) return List(count) { 0f }
+        if (sorted.size == count) return sorted
+        return List(count) { i ->
+            val t = if (count == 1) 0f else i.toFloat() / (count - 1)
+            val pos = t * (sorted.size - 1)
+            val lo = pos.toInt().coerceIn(0, sorted.size - 1)
+            val hi = (lo + 1).coerceIn(0, sorted.size - 1)
+            sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo)
+        }
+    }
+
+    private fun interpolateLog(targetFreq: Float, sorted: List<Pair<Float, Float>>): Float {
+        if (targetFreq <= sorted.first().first) return sorted.first().second
+        if (targetFreq >= sorted.last().first) return sorted.last().second
+        val idx = sorted.indexOfFirst { it.first >= targetFreq }.coerceAtLeast(1)
+        val (loF, loG) = sorted[idx - 1]
+        val (hiF, hiG) = sorted[idx]
+        val t = ((log10(targetFreq) - log10(loF)) / (log10(hiF) - log10(loF))).coerceIn(0f, 1f)
+        return loG + (hiG - loG) * t
     }
 }
