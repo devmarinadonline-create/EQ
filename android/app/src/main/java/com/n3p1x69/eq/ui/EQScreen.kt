@@ -25,7 +25,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.n3p1x69.eq.*
+import kotlin.math.exp
 import kotlin.math.log10
+import kotlin.math.log2
+import kotlin.math.pow
 
 private val BG = Color(0xFF0D0D0D)
 private val CardBg = Color(0xFF1A1A1A)
@@ -142,6 +145,18 @@ fun EQScreen(vm: EQViewModel) {
     }
 }
 
+// Gaussian frequency response simulation (same as iOS app)
+private fun responseAt(freqHz: Float, bands: List<Band>): Float {
+    val sigma = 0.85f
+    var sum = 0f
+    for (band in bands) {
+        val f0 = band.centerFreqHz.coerceAtLeast(1f)
+        val d = log2(freqHz / f0) / sigma
+        sum += band.gainDb * exp(-0.5f * d * d)
+    }
+    return sum.coerceIn(-30f, 30f)
+}
+
 @Composable
 fun EQCurve(bands: List<Band>, modifier: Modifier = Modifier) {
     Canvas(
@@ -158,7 +173,7 @@ fun EQCurve(bands: List<Band>, modifier: Modifier = Modifier) {
         fun freqToX(f: Float) = ((log10(f.coerceAtLeast(1f)) - minLog) / (maxLog - minLog) * size.width)
         fun gainToY(g: Float) = (1f - (g + maxDb) / (2 * maxDb)) * size.height
 
-        // Grid
+        // Grid lines
         listOf(-10f, 0f, 10f).forEach { g ->
             val y = gainToY(g)
             drawLine(
@@ -168,16 +183,22 @@ fun EQCurve(bands: List<Band>, modifier: Modifier = Modifier) {
             )
         }
         listOf(100f, 1000f, 10000f).forEach { f ->
-            val x = freqToX(f)
-            drawLine(Color.White.copy(0.1f), Offset(x, 0f), Offset(x, size.height), 0.8f)
+            drawLine(Color.White.copy(0.1f), Offset(freqToX(f), 0f), Offset(freqToX(f), size.height), 0.8f)
         }
 
-        val pts = bands.map { Offset(freqToX(it.centerFreqHz), gainToY(it.gainDb)) }
-        if (pts.size < 2) return@Canvas
+        // Sample 200 points for smooth curve
+        val steps = 200
+        val pts = (0..steps).map { i ->
+            val t = i.toFloat() / steps
+            val logF = minLog + t * (maxLog - minLog)
+            val freq = 10f.pow(logF)
+            val gain = responseAt(freq, bands)
+            Offset(t * size.width, gainToY(gain))
+        }
 
         val zeroY = gainToY(0f)
 
-        // Fill
+        // Fill under curve
         val fill = Path().apply {
             moveTo(pts.first().x, zeroY)
             pts.forEach { lineTo(it.x, it.y) }
@@ -188,15 +209,16 @@ fun EQCurve(bands: List<Band>, modifier: Modifier = Modifier) {
             listOf(Green.copy(0.35f), Color.Transparent), 0f, size.height
         ))
 
-        // Line
+        // Smooth curve line
         val line = Path().apply {
             moveTo(pts.first().x, pts.first().y)
             pts.drop(1).forEach { lineTo(it.x, it.y) }
         }
         drawPath(line, Green, style = Stroke(2.5f))
 
-        // Dots
-        pts.forEach { pt ->
+        // Band dots at actual center frequencies
+        bands.forEach { band ->
+            val pt = Offset(freqToX(band.centerFreqHz), gainToY(band.gainDb))
             drawCircle(Color.White, 5f, pt)
             drawCircle(Green, 5f, pt, style = Stroke(1.5f))
         }
@@ -266,9 +288,9 @@ fun MiniEQBar(gains: List<Float>, inverted: Boolean, modifier: Modifier = Modifi
 fun BandSliders(bands: List<Band>, onBandChange: (Int, Float) -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
         bands.forEach { band ->
