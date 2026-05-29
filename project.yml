@@ -1,0 +1,47 @@
+name: EQ
+
+options:
+  bundleIdPrefix: com.n3p1x69
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  xcodeVersion: "16.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    ENABLE_BITCODE: "NO"
+
+targets:
+  EQ:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+
+    sources:
+      - path: Sources
+        excludes:
+          - "EarsAudioToolkitPresets.json"
+          - "Info.plist"
+
+    resources:
+      - Sources/EarsAudioToolkitPresets.json
+
+    info:
+      path: Sources/Info.plist
+
+    dependencies:
+      - sdk: AVFoundation.framework
+      - sdk: MediaPlayer.framework
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.n3p1x69.eq
+        INFOPLIST_FILE: Sources/Info.plist
+        DEVELOPMENT_TEAM: ""
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "NO"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
