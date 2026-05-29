@@ -82,7 +82,7 @@ struct ContentView: View {
                     onToggle: audio.togglePlay,
                     onOpen: { showPicker = true }
                 )
-                .padding(.bottom, 36)
+                .padding(.bottom, 20)
             }
         }
         .preferredColorScheme(.dark)

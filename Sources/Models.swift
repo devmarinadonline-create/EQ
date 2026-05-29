@@ -19,20 +19,21 @@ final class PresetStore: ObservableObject {
 
     init() { load() }
 
+    private struct RawPreset: Decodable {
+        let frequencies: [Float]
+        let gains: [Float]
+        let qs: [Float]
+    }
+
     private func load() {
         guard
             let url = Bundle.main.url(forResource: "EarsAudioToolkitPresets", withExtension: "json"),
             let data = try? Data(contentsOf: url),
-            let raw = try? JSONSerialization.jsonObject(with: data) as? [String: [String: [NSNumber]]]
+            let raw = try? JSONDecoder().decode([String: RawPreset].self, from: data)
         else { return }
 
-        presets = raw.compactMap { name, dict in
-            guard
-                let freqs = dict["frequencies"]?.map({ $0.floatValue }),
-                let gains = dict["gains"]?.map({ $0.floatValue }),
-                let qs = dict["qs"]?.map({ $0.floatValue })
-            else { return nil }
-            return Preset(id: name, frequencies: freqs, gains: gains, qs: qs)
+        presets = raw.map { name, p in
+            Preset(id: name, frequencies: p.frequencies, gains: p.gains, qs: p.qs)
         }
         .sorted { $0.id.lowercased() < $1.id.lowercased() }
     }
