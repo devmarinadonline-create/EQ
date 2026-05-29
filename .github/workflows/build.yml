@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Select Xcode
         run: |
@@ -50,6 +52,8 @@ jobs:
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           name: EQ-unsigned
           path: EQ-unsigned.ipa
