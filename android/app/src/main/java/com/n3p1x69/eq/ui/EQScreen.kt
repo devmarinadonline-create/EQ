@@ -96,7 +96,13 @@ fun EQScreen(vm: EQViewModel) {
             )
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
+
+        // Volume boost
+        val loudness by vm.engine.loudnessDb.collectAsState()
+        LoudnessRow(loudnessDb = loudness, onChange = vm::setLoudness)
+
+        Spacer(Modifier.height(4.dp))
 
         // Tab switcher
         Row(
@@ -142,6 +148,37 @@ fun EQScreen(vm: EQViewModel) {
                 modifier = Modifier.weight(1f)
             )
         }
+    }
+}
+
+@Composable
+fun LoudnessRow(loudnessDb: Float, onChange: (Float) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text("Громкость", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.width(72.dp))
+        Slider(
+            value = loudnessDb,
+            onValueChange = onChange,
+            valueRange = 0f..20f,
+            modifier = Modifier.weight(1f),
+            colors = SliderDefaults.colors(
+                thumbColor = Green,
+                activeTrackColor = Green,
+                inactiveTrackColor = Color(0xFF2E2E2E)
+            )
+        )
+        Text(
+            text = "+${loudnessDb.toInt()} dB",
+            fontSize = 12.sp,
+            color = if (loudnessDb > 0f) Green else Color.Gray,
+            modifier = Modifier.width(48.dp),
+            textAlign = TextAlign.End
+        )
     }
 }
 

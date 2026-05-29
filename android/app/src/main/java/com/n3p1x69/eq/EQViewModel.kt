@@ -26,6 +26,8 @@ class EQViewModel(val engine: EQEngine) : ViewModel() {
         engine.setBand(index, gain)
         selectedPreset = null
     }
+
+    fun setLoudness(db: Float) = engine.setLoudness(db)
 }
 
 class EQViewModelFactory(private val engine: EQEngine) : ViewModelProvider.Factory {

@@ -1,6 +1,7 @@
 package com.n3p1x69.eq
 
 import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,9 +17,13 @@ data class Band(
 
 class EQEngine {
     private var eq: Equalizer? = null
+    private var loudness: LoudnessEnhancer? = null
 
     private val _bands = MutableStateFlow<List<Band>>(emptyList())
     val bands: StateFlow<List<Band>> = _bands.asStateFlow()
+
+    private val _loudnessDb = MutableStateFlow(0f)
+    val loudnessDb: StateFlow<Float> = _loudnessDb.asStateFlow()
 
     private val _supported = MutableStateFlow(true)
     val supported: StateFlow<Boolean> = _supported.asStateFlow()
@@ -31,6 +36,9 @@ class EQEngine {
         } catch (e: Exception) {
             _supported.value = false
         }
+        try {
+            loudness = LoudnessEnhancer(0).apply { enabled = true }
+        } catch (_: Exception) {}
     }
 
     private fun refreshBands() {
@@ -63,18 +71,28 @@ class EQEngine {
 
     fun applyGains(gains: List<Float>) {
         val count = eq?.numberOfBands?.toInt() ?: return
-        for (i in 0 until count) {
-            setBand(i, gains.getOrElse(i) { 0f })
-        }
+        for (i in 0 until count) setBand(i, gains.getOrElse(i) { 0f })
+    }
+
+    // loudnessDb: 0..20 dB
+    fun setLoudness(db: Float) {
+        val clamped = db.coerceIn(0f, 20f)
+        try {
+            loudness?.setTargetGain((clamped * 100).toInt())
+        } catch (_: Exception) {}
+        _loudnessDb.value = clamped
     }
 
     fun reset() {
         val count = eq?.numberOfBands?.toInt() ?: return
         for (i in 0 until count) setBand(i, 0f)
+        setLoudness(0f)
     }
 
     fun release() {
         eq?.release()
+        loudness?.release()
         eq = null
+        loudness = null
     }
 }
